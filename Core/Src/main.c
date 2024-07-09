@@ -103,8 +103,9 @@ int main(void)
 	/*uint32_t tickctrl, tickctrlold, timelapse;
 	tickctrlold = HAL_GetTick();
 	timelapse = 500;*/
-	stimer stimer1;
+	stimer stimer1, stimer2;
 	stimer_init(&stimer1, 500);
+	stimer_init(&stimer2, 1000);
 
   /* USER CODE END 2 */
 
@@ -120,6 +121,12 @@ int main(void)
 	  {
 		  HAL_GPIO_TogglePin(LED_Orange_GPIO_Port, LED_Orange_Pin);
 		  stimer_reload(&stimer1);
+	  }
+	  
+	  if (stimer_is_off(&stimer2))
+	  {
+		  HAL_GPIO_TogglePin(LED_Blue_GPIO_Port, LED_Blue_Pin);
+		  stimer_reload(&stimer2);
 	  }
 	  
 	  
