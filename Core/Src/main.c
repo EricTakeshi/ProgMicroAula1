@@ -27,6 +27,18 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+typedef struct 
+{
+	uint32_t tick_inicial;
+	uint32_t time_lapse;
+}stimer;
+
+typedef enum
+{
+	counting = 0,
+	off
+}typeTimerStatus;
+
 
 /* USER CODE END PTD */
 
@@ -48,7 +60,9 @@
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-
+void stimer_init(stimer* pTimer, uint32_t tLapse);
+void stimer_reload(stimer* pTimer);
+typeTimerStatus stimer_is_off(stimer* pTimer);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -86,9 +100,11 @@ int main(void)
   MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
 	//HAL_GPIO_WritePin(LED_Orange_GPIO_Port, LED_Orange_Pin, GPIO_PIN_SET);
-	uint32_t tickctrl, tickctrlold, timelapse;
+	/*uint32_t tickctrl, tickctrlold, timelapse;
 	tickctrlold = HAL_GetTick();
-	timelapse = 500;
+	timelapse = 500;*/
+	stimer stimer1;
+	stimer_init(&stimer1, 500);
 
   /* USER CODE END 2 */
 
@@ -99,13 +115,14 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  //HAL_GPIO_TogglePin(LED_Orange_GPIO_Port, LED_Orange_Pin);
-	  tickctrl = HAL_GetTick();
-	  if ((tickctrl - tickctrlold) >= timelapse)
+	  
+	  if (stimer_is_off(&stimer1))
 	  {
 		  HAL_GPIO_TogglePin(LED_Orange_GPIO_Port, LED_Orange_Pin);
-		  tickctrlold = tickctrlold + timelapse;
+		  stimer_reload(&stimer1);
 	  }
+	  
+	  
 	  
 	  
   }
@@ -158,7 +175,22 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+void stimer_init(stimer* pTimer, uint32_t tLapse)
+{
+	pTimer->tick_inicial = HAL_GetTick();
+	pTimer->time_lapse = tLapse;
+	
+}
+void stimer_reload(stimer* pTimer)
+{
+	pTimer->tick_inicial += pTimer->time_lapse;	
+}
+typeTimerStatus stimer_is_off(stimer* pTimer)
+{
+	uint32_t Delta = HAL_GetTick() - pTimer->tick_inicial;
+	return (Delta >= pTimer->time_lapse);
+	
+}
 /* USER CODE END 4 */
 
 /**
