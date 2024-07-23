@@ -253,20 +253,30 @@ typeTimerStatus stimer_is_off(stimer* pTimer)
 
 typeBoolStatus is_Rise_Edge(sBot* pBot)
 {
-	pBot->ant = pBot->atu;
-	pBot->atu = (typePushBottonState)HAL_GPIO_ReadPin(pBot->GPIOx, pBot->GPIO_Pin);
-	if (pBot->atu == push && pBot->ant == release && pBot->edge_detect_state == edge_detect) 
+	switch (pBot->edge_detect_state)
 	{
-		stimer_reload(&(pBot->dbtimer));
-		pBot->edge_detect_state = filter_bouncing;
-	}
-	if (stimer_is_off(&(pBot->dbtimer)) && pBot->edge_detect_state == filter_bouncing)
-	{
+	case edge_detect:
+		pBot->ant = pBot->atu;
 		pBot->atu = (typePushBottonState)HAL_GPIO_ReadPin(pBot->GPIOx, pBot->GPIO_Pin);
-		pBot->edge_detect_state = edge_detect;
-		return (pBot->atu == push);	 
-	}	
-	return false;
+		if (pBot->atu == push && pBot->ant == release) 
+		{
+			stimer_init(&(pBot->dbtimer), pBot->dbtimer.time_lapse);
+			pBot->edge_detect_state = filter_bouncing;
+		}
+		break;
+	case filter_bouncing:
+		if ( true == stimer_is_off(&(pBot->dbtimer)) )
+		{
+			pBot->atu = (typePushBottonState)HAL_GPIO_ReadPin(pBot->GPIOx, pBot->GPIO_Pin);
+			pBot->edge_detect_state = edge_detect;
+			return ((typeBoolStatus)pBot->atu);	 
+		}	
+		break;
+	default:
+		break;
+	}
+	
+	return (false);
 }
 void edge_detect_init(sBot* pBot, GPIO_TypeDef* GPIOz, uint16_t zPin, typeEdge edge, uint32_t dbtimelapse)
 {
