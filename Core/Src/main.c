@@ -42,13 +42,18 @@ typedef enum
 {
 	false = 0,
 	true
-}typeBotStatus;
+}typeBoolStatus;
 
 typedef enum
 {
 	release = 0,
 	push
 }typePushBottonState;
+typedef enum 
+{
+	edge_detect = 0,
+	filter_bouncing
+}typeEdgeDetectState;
 typedef enum
 {
 	fall = 0,
@@ -59,6 +64,7 @@ typedef struct
 {
 	typePushBottonState ant;
 	typePushBottonState atu;
+	typeEdgeDetectState edge_detect_state;
 	GPIO_TypeDef* GPIOx;
 	uint16_t GPIO_Pin;
 	stimer dbtimer;
@@ -87,9 +93,9 @@ void SystemClock_Config(void);
 void stimer_init(stimer* pTimer, uint32_t tLapse);
 void stimer_reload(stimer* pTimer);
 typeTimerStatus stimer_is_off(stimer* pTimer);
-typeBotStatus is_Rise_Edge(sBot* pBot);
+typeBoolStatus is_Rise_Edge(sBot* pBot);
 void edge_detect_init(sBot* pBot, GPIO_TypeDef* GPIOz, uint16_t zPin, typeEdge edge, uint32_t dbouncing);
-typeBotStatus is_Fall_Edge(sBot* pBot);
+typeBoolStatus is_Fall_Edge(sBot* pBot);
 
 /* USER CODE END PFP */
 
@@ -135,7 +141,7 @@ int main(void)
 	stimer_init(&stimer1, 500);
 	stimer_init(&stimer2, 1000);
 	sBot bluebot;
-	typeBotStatus OrangeLedBlinkOn = false;
+	typeBoolStatus OrangeLedBlinkOn = false;
 	
 	edge_detect_init(&bluebot,Bot_Blue_GPIO_Port, Bot_Blue_Pin, rise, 100);
 	
@@ -153,7 +159,7 @@ int main(void)
     /* USER CODE BEGIN 3 */
 	  
 	  
-	  if (is_Rise_Edge(&bluebot))
+	  if (true == is_Rise_Edge(&bluebot))
 	  {
 		  OrangeLedBlinkOn = !OrangeLedBlinkOn;
 		  a++;
@@ -169,11 +175,11 @@ int main(void)
 	  }
 	 
 	  
-	  /*if (stimer_is_off(&stimer2))
+	  if (stimer_is_off(&stimer2))
 	  {
 		  HAL_GPIO_TogglePin(LED_Blue_GPIO_Port, LED_Blue_Pin);
 		  stimer_reload(&stimer2);
-	  }*/
+	  }
 	  
 	  
 	  
@@ -245,20 +251,29 @@ typeTimerStatus stimer_is_off(stimer* pTimer)
 	
 }
 
-typeBotStatus is_Rise_Edge(sBot* pBot)
+typeBoolStatus is_Rise_Edge(sBot* pBot)
 {
 	pBot->ant = pBot->atu;
 	pBot->atu = (typePushBottonState)HAL_GPIO_ReadPin(pBot->GPIOx, pBot->GPIO_Pin);
-	if (stimer_is_off(&pBot->dbtimer))
+	if (pBot->atu == push && pBot->ant == release && pBot->edge_detect_state == edge_detect) 
 	{
-		return (pBot->atu == push && pBot->ant == release);
+		stimer_reload(&(pBot->dbtimer));
+		pBot->edge_detect_state = filter_bouncing;
 	}
+	if (stimer_is_off(&(pBot->dbtimer)) && pBot->edge_detect_state == filter_bouncing)
+	{
+		pBot->atu = (typePushBottonState)HAL_GPIO_ReadPin(pBot->GPIOx, pBot->GPIO_Pin);
+		pBot->edge_detect_state = edge_detect;
+		return (pBot->atu == push);	 
+	}	
 	return false;
 }
-void edge_detect_init(sBot* pBot, GPIO_TypeDef* GPIOz, uint16_t zPin, typeEdge edge, uint32_t dbouncing)
+void edge_detect_init(sBot* pBot, GPIO_TypeDef* GPIOz, uint16_t zPin, typeEdge edge, uint32_t dbtimelapse)
 {
 	pBot->GPIOx = GPIOz;
 	pBot->GPIO_Pin = zPin;
+	pBot->edge_detect_state = edge_detect;
+	stimer_init(&(pBot->dbtimer), dbtimelapse);
 	
 	if (rise == edge)
 	{
@@ -270,7 +285,7 @@ void edge_detect_init(sBot* pBot, GPIO_TypeDef* GPIOz, uint16_t zPin, typeEdge e
 		pBot->ant = release;
 		pBot->atu = release;
 	}
-	stimer_init(&pBot->dbtimer, dbouncing);
+	
 }
 /* USER CODE END 4 */
 
