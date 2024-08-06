@@ -76,6 +76,16 @@ typedef struct
 	uint16_t GPIO_Pin;
 	
 }sblinker;
+typedef struct
+{
+	uint16_t Nt;
+	uint16_t Na;
+	uint16_t Nb;
+	GPIO_TypeDef* GPIOx;
+	uint16_t GPIO_Pin;
+	stimer pwmtimer;
+	typeBoolStatus alto;
+}spwm;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -99,11 +109,14 @@ void SystemClock_Config(void);
 void stimer_init(stimer* pTimer, uint32_t tLapse);
 void stimer_reload(stimer* pTimer);
 typeTimerStatus stimer_is_off(stimer* pTimer);
-typeBoolStatus is_Rise_Edge(sBot* pBot);
-void edge_detect_init(sBot* pBot, GPIO_TypeDef* GPIOz, uint16_t zPin, typeEdge edge, uint32_t dbouncing);
+typeBoolStatus is_Rise_Edge(sBot* pbot);
+void edge_detect_init(sBot* pBot, GPIO_TypeDef* GPIOx, uint16_t xPin, typeEdge edge, uint32_t dbounce);
 typeBoolStatus is_Fall_Edge(sBot* pBot);
 void blinker_init(sblinker* pBlinker, GPIO_TypeDef* GPIOx, uint16_t xPin, uint32_t hfper);
 void blinker_function(sblinker* pBlinker);
+void pwm_init(spwm* ppwm, GPIO_TypeDef* GPIOx, uint16_t xPin, uint16_t Nt, uint16_t Na);
+void pwm_function(spwm* ppwm);
+void pwm_reload(spwm* ppwm, uint16_t Nt, uint16_t Na);
 
 /* USER CODE END PFP */
 
@@ -149,13 +162,16 @@ int main(void)
 	stimer_init(&stimer1, 500);
 	stimer_init(&stimer2, 1000);
 	sBot bluebot;
-	sblinker OrangeBlink;
+	sblinker OrangeL;
 	sblinker BlueBlink;
 	typeBoolStatus OrangeLedBlinkOn = false;
 	
 	edge_detect_init(&bluebot,Bot_Blue_GPIO_Port, Bot_Blue_Pin, fall, 150);
-	blinker_init(&OrangeBlink, LED_Orange_GPIO_Port, LED_Orange_Pin, 500);
+	blinker_init(&OrangeL, LED_Orange_GPIO_Port, LED_Orange_Pin, 500);
 	blinker_init(&BlueBlink, LED_Blue_GPIO_Port, LED_Blue_Pin, 1000);
+	
+	spwm BluePWM;
+	pwm_init(&BluePWM, LED_Blue_GPIO_Port, LED_Blue_Pin, 1000, 500);
 	
 	//uint16_t bstatus_old, bstatus;
 	//bstatus = HAL_GPIO_ReadPin(Bot_Blue_GPIO_Port, Bot_Blue_Pin);
@@ -170,7 +186,7 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  
-	  
+#if 0	  
 	  if (true == is_Fall_Edge(&bluebot))
 	  {
 		  OrangeLedBlinkOn = !OrangeLedBlinkOn;
@@ -179,10 +195,11 @@ int main(void)
 	  
 	  if (true == OrangeLedBlinkOn)
 	  {
-		  blinker_function(&OrangeBlink);
+		  blinker_function(&OrangeL);
 	  }
+#endif
 	 
-	  blinker_function(&BlueBlink);
+	  pwm_function(&BluePWM);
 	  
   }
   /* USER CODE END 3 */
@@ -336,6 +353,64 @@ void blinker_function(sblinker* pBlinker)
 		HAL_GPIO_TogglePin(pBlinker->GPIOx, pBlinker->GPIO_Pin);
 		stimer_reload(&(pBlinker->bkrtimer));
 	}
+}
+void pwm_init(spwm* ppwm, GPIO_TypeDef* GPIOx, uint16_t xPin, uint16_t Nt, uint16_t Na)
+{
+	
+	ppwm->GPIOx = GPIOx;
+	ppwm->GPIO_Pin = xPin;
+	ppwm->Nt = Nt;
+	ppwm->Na = Na;
+	if (Nt > Na)
+	{
+		ppwm->Nb = Nt - Na;
+	}
+	else
+	{
+		ppwm->Nb = 0;   //100% PWM
+	}
+	if (ppwm->Na > 0)
+	{
+		HAL_GPIO_WritePin(ppwm->GPIOx, ppwm->GPIO_Pin, GPIO_PIN_SET); 
+		stimer_init(&(ppwm->pwmtimer), ppwm->Na);
+		ppwm->alto = true;
+	}
+	else
+	{
+		HAL_GPIO_WritePin(ppwm->GPIOx, ppwm->GPIO_Pin, GPIO_PIN_RESET);
+		stimer_init(&(ppwm->pwmtimer), ppwm->Nb);
+		ppwm->alto = false;
+	}
+	
+	
+}
+void pwm_function(spwm* ppwm)
+{
+	if (true == stimer_is_off(&(ppwm->pwmtimer)))
+	{
+		if (true == ppwm->alto)
+		{
+			if (0 == ppwm->Nb)
+			{
+				
+			}
+			else
+			{
+				
+			}
+		}
+	}
+	else
+	{
+		if (0 == ppwm->Na)
+		{
+			
+		}
+		
+	}
+}
+void pwm_reload(spwm* ppwm, uint16_t Nt, uint16_t Na)
+{
 }
 /* USER CODE END 4 */
 
